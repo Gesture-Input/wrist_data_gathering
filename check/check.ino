@@ -8,8 +8,6 @@ int s4=A3;//신호 값 사용 범위
 
 void setup() {
   Serial.begin(9600);
-  
-  
 
 }
 
