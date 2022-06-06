@@ -91,6 +91,9 @@ class wrist():
 
 wr1 = wrist("LightYe4r",4)
 wr1.get_data()
+print("데이터 확인\n")
+print(wr1.data)
 
+temp = input("데이터 불러오기 완료 입력을 시작하려면 ENTER를 누르세요")
 
 wr1.listen()
