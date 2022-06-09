@@ -1,0 +1,4 @@
+release_vertical 0.0 0.0 3.92 0.0
+index_finger_down_vertical 57.56 99.02 32.92 38.62
+stretch_left_vertical 303.12 367.62 375.44 277.14
+paper_vertical 731.6 779.4 781.8 606.58

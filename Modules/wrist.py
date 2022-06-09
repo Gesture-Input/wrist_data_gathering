@@ -4,6 +4,7 @@ import serial
 import numpy as np
 import time
 import heapq
+from threading import Thread
 
 
 class Wrist():
@@ -15,14 +16,18 @@ class Wrist():
         else:
             self.user_data_path = os.getcwd() + "/data/" + name +".txt" 
         self.length = length
-        self.pressure_data = []
+        self.pressure_data = np.array([])
         self.user_data = []
         self.ser = serial.Serial(port_name,port_num)
         self.gesture = ""
+        self.maxcount = 50
         self.load_user_data()
+        self.thread = Thread(target=self.update_wrist_data)
+        self.thread.start()
+    
 
     def get_user_data(self):
-        print(self.user_data)
+        # print(self.user_data)
         return self.user_data
     
     def load_user_data(self):
@@ -47,6 +52,7 @@ class Wrist():
         return
     
     def save_user_data(self):
+        print(self.user_data_path)
         file = open(self.user_data_path, "w")
         tempstr = ""
         for temp in self.user_data:
@@ -57,22 +63,28 @@ class Wrist():
             tempstr += "\n"
         file.write(tempstr)
         file.close()
+        print("data saved")
+    
+    def show_for_maxcount(self):
+        for i in range(self.maxcount):
+            if(self.update_wrist_data()):
+                print(self.pressure_data)
     
     def add_gesture(self,gesture_name):
-        maxcount = 50
+        self.show_for_maxcount()
         temp = []
         temp.append(gesture_name)
         count = 0
-        tempdata = np.array([0,0,0,0])
-        while(count < maxcount):
-            res = self.ser.readline()
-            print(res.decode()[:len(res)])
-            print(np.array(res.decode()[:len(res)]))
-            
-            tempdata += np.array(list(map(int, res.decode()[:len(res)].split(" "))))
-            count += 1
-        
-        temp.append(tempdata/maxcount)
+        tempdata = np.array([0.0,0.0,0.0,0.0])
+        while(count < self.maxcount):
+            # print(res.decode()[:len(res)])
+            # print(np.array(res.decode()[:len(res)]))
+            if(self.update_wrist_data()):
+                tempdata += self.pressure_data
+                print(self.pressure_data)
+                count += 1
+        temp.append(tempdata/self.maxcount)
+
         is_data = False
         for i in range(len(self.user_data)):
             if(self.user_data[i][0] == gesture_name):
@@ -86,9 +98,11 @@ class Wrist():
     def calculate_gesture(self,current):
         temp_heap = []
         heapq.heapify(temp_heap)
+        # print(current)
+        cur = np.array([0.0,0.0,0.0,0.0]) + current
         for i in self.user_data:
 #             print(i)
-            diff = i[1] - current
+            diff = i[1] - cur
             dis_sq = 0
             for j in diff.tolist():
                 dis_sq += j * j
@@ -96,11 +110,18 @@ class Wrist():
         return heapq.heappop(temp_heap)[1]
 
     def update_wrist_data(self):
+        self.ser.reset_input_buffer()
         res = self.ser.readline()
+        # print(res)
         try:
-            self.pressure_data = np.array(list(map(float, res.decode()[:len(res)].split(" "))))
+            temp_data = np.array(list(map(float, res.decode()[:len(res)].split(" "))))
+            if(len(temp_data) == self.length):
+                self.pressure_data = temp_data
+            else:
+                self.pressure_data = np.array([0.0,0.0,0.0,0.0])
         except:
             print("no data")
+            self.pressure_data = np.array([0.0,0.0,0.0,0.0])
             return False
         
         return True
@@ -108,11 +129,14 @@ class Wrist():
     def listen(self):
         if(self.update_wrist_data()):
             self.gesture = self.calculate_gesture(self.pressure_data)
+        # self.gesture = self.calculate_gesture(self.pressure_data)
         
         return self.gesture
             
     def listen_data(self):
         if(self.update_wrist_data()):
             print(self.pressure_data)
-        return self.pressure_data
+        # return self.pressure_data
         
+    # def empty_data(self):
+    #     self.ser.readlines()
